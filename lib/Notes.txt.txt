@@ -1,0 +1,68 @@
+CSM1117A
+Jonathan
+Nero
+Ran
+
+
+Android GPS:
+
+http://developer.android.com/guide/topics/location/strategies.html
+
+http://developer.android.com/reference/android/location/package-summary.html
+
+http://www.vogella.com/tutorials/AndroidLocationAPI/article.html#locationapi
+
+
+project
+project name: MyMap
+Project ID:stable-glass-753
+99:2E:EB:43:22:38:F0:EC:6A:F6:47:96:B0:FC:65:E2:1B:92:87:DD;ucla.csm117.jorgqg
+API key: AIzaSyBDsl2Qi3cbDJNQHiBltmsNsuupxYljxcs
+
+
+Cat and mouse
+employs blue tooth capture, gps, server client app.
+
+1 hour limit
+
+wifi or data to connect to server.
+
+
+cat has access to a scan every 3 minutes (15 second interval), shows mice
+	sends everyone location, status, game status
+	
+mice see other mice, can't see cat, only given number representing distance to cat(meters)
+
+server - 
+
+
+cat
+-can see every mice location (long, lat)
+-captures using bluetooth (master)
+-every capture 
+-cat and mice can ping (three?) a minute for each other in (30m?)
+	returned actual location on map?
+	distance?
+	confirmation?
+
+mice
+-can see distance to cat, but not on map
+-every other mice's position on map
+-captured by bluetooth (slave)
+-once connected/captured, mice loses. Becomes server to cat and relays data of all other mice? 
+- when someone pings
+	everyone in range is notified of the person pinging is nearby (location of cat on map is given to all mice if cat pings, otherwise jsut the mouse)
+
+	
+capture mechanic
+
+-bluetooth oriented by either distance or signal strength
+
+ping mechanic 
+	cat
+		available once a minute
+		
+	mouse
+	
+	
+	ran.gross@yahoo.com
