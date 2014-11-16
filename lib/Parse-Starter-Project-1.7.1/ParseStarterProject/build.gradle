@@ -1,14 +1,16 @@
-apply plugin: 'com.android.application'
+apply plugin: 'java'
 
-repositories {
-    mavenCentral()
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        compile 'com.parse.bolts:bolts-android:1.1.3'
+        compile fileTree(dir: 'libs', include: 'Parse-*.jar')
+    }
 }
-
-dependencies {
-    compile 'com.parse.bolts:bolts-android:1.1.3'
-    compile fileTree(dir: 'libs', include: 'Parse-*.jar')
-}
-
+apply plugin: 'android '
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
