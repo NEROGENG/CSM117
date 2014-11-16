@@ -13,7 +13,7 @@ public class ParseApplication extends Application {
     super.onCreate();
 
     // Add your initialization code here
-    Parse.initialize(this, "xJxmXrtjWXGGl3jmHxLmhD5uyG6rv6jSgR9xUwO3", "W0ePKRBPHRHSNVwUTsB2MsW7aJJzhTyGEZ1B4F1c");
+    Parse.initialize(this, YOUR_APPLICATION_ID, YOUR_CLIENT_KEY);
 
 
     ParseUser.enableAutomaticUser();
