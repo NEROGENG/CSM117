@@ -23,14 +23,16 @@ import com.parse.*;
 
 public class MainActivity extends ActionBarActivity {
 
-	private static final String tag = MainActivity.class.getSimpleName();
+	//private static final String tag = "helloworld";
 	
-	private String pid = "1";
+	private Integer pid = 1;
 	private Boolean myType;
 	private EditText textField;
 	private Button button;
 	private Button button02;
 	private String messsage;
+	
+	private Integer init = 0;
 	
 	private String retmsg;
 	
@@ -48,19 +50,42 @@ public class MainActivity extends ActionBarActivity {
         textField = (EditText) findViewById(R.id.editText1); // reference to the text field
 		button = (Button) findViewById(R.id.button1); // reference to the send button
  
-		
+		/*
 		for(int i=0; i<8;i++){
 			ParseObject gameScore = new ParseObject("PlayerInfo");
-			gameScore.put("pid",i);
+			gameScore.put("pid",Integer.valueOf(i).toString());
 			gameScore.put("deviceType", myType);
 			ParseGeoPoint point = new ParseGeoPoint(40.0+i*i, -30.0-i*i);
 			gameScore.put("location", point);
+			gameScore.put("isTaken", false);
 			//gameScore.put("msg", messsage);
 			gameScore.saveInBackground();
+		}*/
+		
+		
+		for(init=0; init<8;init++){
+			ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
+			query.whereMatches("pid", (Integer.valueOf(init)).toString());
+			try {
+				query.getInBackground(query.getFirst().getObjectId(),new GetCallback<ParseObject>() {
+					public void done(ParseObject player, ParseException e) {
+						if (e == null) {
+							//ParseGeoPoint point = new ParseGeoPoint(40.0, -30.0);
+							//gameScore.put("location", point);
+							player.put("isTaken", true);
+							player.saveInBackground();
+						}
+					}
+				});
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
-		
-		
+			
+	
+		init = 0;
 		// Button press event listener
 		button.setOnClickListener(new View.OnClickListener() {
  
@@ -95,7 +120,7 @@ public class MainActivity extends ActionBarActivity {
 			public void onClick(View v) {
 				
 				ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
-				query.whereMatches("pid", pid);
+				query.whereMatches("pid", pid.toString());
 				query.findInBackground(new FindCallback<ParseObject>() {
 					public void done(List<ParseObject> playerList, ParseException e) {
 				        if (e == null) {
@@ -127,7 +152,7 @@ public class MainActivity extends ActionBarActivity {
 		protected Void doInBackground(Void... params) {
 			
 			ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
-			query.whereMatches("pid", pid);
+			query.whereMatches("pid", (pid++).toString());
 			try {
 				query.getInBackground(query.getFirst().getObjectId(),new GetCallback<ParseObject>() {
 				public void done(ParseObject player, ParseException e) {
