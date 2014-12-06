@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">SimpleClient-Server</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="cat">You are a cat</string>
+    <string name="mouse">You are a mouse</string>
+    <string name="exit">Quit Game</string>
+    <string name="ping1">Minute Ping</string>
+    <string name="ping2">Super Ping</string>
+    <string name="change">Change your identity!</string>
+    <string name="devices">List devices nearby</string>
+    <string name="Connect">Connect to other device</string>
+
+</resources>
