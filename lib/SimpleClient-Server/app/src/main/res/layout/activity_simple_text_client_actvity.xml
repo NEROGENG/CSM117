@@ -4,12 +4,13 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context=".SimpleTextClientActvity">
+    tools:context=".HuntTheTrojan">
+    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/map"
+    android:layout_width="match_parent"
+    android:layout_height="475dp"
 
-    <TextView android:text="@string/cat" android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/textView" />
-
+    android:name="com.google.android.gms.maps.MapFragment"/>
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -27,7 +28,8 @@
         android:text="@string/ping1"
         android:id="@+id/button2"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:onClick="minutePing" />
 
     <Button
         android:layout_width="wrap_content"
@@ -36,46 +38,13 @@
         android:id="@+id/button3"
         android:layout_alignTop="@+id/button2"
         android:layout_alignParentEnd="true"
-        android:layout_toEndOf="@+id/button2" />
+        android:layout_toEndOf="@+id/button2"
+        android:onClick="SuperPing"/>
 
-    <Button
-        style="?android:attr/buttonStyleSmall"
+    <ProgressBar
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/change"
-        android:id="@+id/button4"
-        android:onClick="changeText"
-        android:layout_toEndOf="@+id/textView"
-        android:layout_above="@+id/button"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="113dp" />
-
-    <Button
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/devices"
-        android:id="@+id/button5"
-        android:layout_toStartOf="@+id/button2"
-        android:onClick="listD"
-        android:layout_centerVertical="true"
+        android:id="@+id/progressBar"
         android:layout_centerHorizontal="true" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/Connect"
-        android:id="@+id/button6"
-        android:layout_above="@+id/button5"
-        android:layout_alignStart="@+id/button4"
-        android:onClick="button_Connect" />
-
-    <ListView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/listView"
-        android:layout_toStartOf="@+id/button3"
-        android:layout_below="@+id/textView"
-        android:layout_alignStart="@+id/button4" />
 
 </RelativeLayout>

@@ -4,13 +4,20 @@
     <string name="app_name">SimpleClient-Server</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
-    <string name="cat">You are a cat</string>
-    <string name="mouse">You are a mouse</string>
+    <string name="cat">You are the cat! Press "Start Game!"</string>
+    <string name="mouse">You are a mouse.</string>
     <string name="exit">Quit Game</string>
     <string name="ping1">Minute Ping</string>
     <string name="ping2">Super Ping</string>
     <string name="change">Change your identity!</string>
     <string name="devices">List devices nearby</string>
     <string name="Connect">Connect to other device</string>
+    <string name="title_activity_game_start">GameStart</string>
+    <string name="Welcome">Welcome to Hunt the Trojan</string>
+    <string name="Host">Make a game</string>
+    <string name="Client">Join a game</string>
+    <string name="Start">Start game!</string>
+    <string name="drop">Drop the cat</string>
+
 
 </resources>
