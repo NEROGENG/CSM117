@@ -10,7 +10,11 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesClient;
+import com.google.android.gms.location.LocationClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -22,16 +26,19 @@ import com.parse.*;
 import java.util.Collections;
 import java.util.List;
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends FragmentActivity implements
+        GooglePlayServicesClient.ConnectionCallbacks,
+        GooglePlayServicesClient.OnConnectionFailedListener {
+
     //Google Map variables
     private GoogleMap googleMap;
     private LocationManager locationManager;
+    private LocationClient mLocationClient;
     private Location myLoc;
     //Parse variables
-    private Integer pid = 1;
+    private Integer pid = 2;
     private Button button;
-
-    //private List<Marker> markerList = new ArrayList<Marker>();
+    private static final String TAG = "myLocation";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +46,7 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_main);
         setUpParse();
         setUpGoogleMap();
+        mLocationClient = new LocationClient(this, this, this);
 
         button = (Button) findViewById(R.id.button_update);
         button.setOnClickListener(new View.OnClickListener() {
@@ -54,12 +62,12 @@ public class MainActivity extends FragmentActivity {
                             for(ParseObject obj : playerList) {
                                 ParseGeoPoint g = obj.getParseGeoPoint("location");
                                 ParseGeoPoint ml = new ParseGeoPoint(myLoc.getLatitude(),myLoc.getLongitude());
-                                if(g.distanceInKilometersTo(ml) < 0.1) {
+                                //if(g.distanceInKilometersTo(ml) < 0.1) {
                                     Location l = new Location(myLoc);
                                     l.setLatitude(g.getLatitude());
                                     l.setLongitude(g.getLongitude());
                                     drawMarker(l);
-                                }
+                                //}
                             }
                         } else {
                             //Log.d("score", "Error: " + e.getMessage());
@@ -89,43 +97,47 @@ public class MainActivity extends FragmentActivity {
 
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
 
-        Criteria criteria = new Criteria();
-
-        String provider = locationManager.getBestProvider(criteria, true);
-
-        Location location = locationManager.getLastKnownLocation(provider);
-
         LocationListener locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
                 //googleMap.clear();
                 //drawMarker(location);
                 myLoc = location;
+                drawMarker(myLoc);
                 pushLocation();
             }
 
             @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-
-            }
+            public void onStatusChanged(String provider, int status, Bundle extras) {}
 
             @Override
-            public void onProviderEnabled(String provider) {
-
-            }
+            public void onProviderEnabled(String provider) {}
 
             @Override
-            public void onProviderDisabled(String provider) {
-
-            }
+            public void onProviderDisabled(String provider) {}
         };
 
-            if(location != null){
-                //PLACE THE INITIAL MARKER
-                myLoc = location;
-                drawMarker(location);
-            }
-            locationManager.requestLocationUpdates(provider, 10000, 20, locationListener);
+        Criteria criteria = new Criteria();
+        String provider= locationManager.getBestProvider(criteria, true);
+
+        myLoc = locationManager.getLastKnownLocation(provider);
+
+        if (myLoc != null) {
+            drawMarker(myLoc);
+            double latitude = myLoc.getLatitude();
+            double longitude = myLoc.getLongitude();
+
+            LatLng latLng = new LatLng(latitude, longitude);
+            googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+            googleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+        }
+        else
+            Toast.makeText(this, "No location found.",
+                    Toast.LENGTH_SHORT).show();
+
+        //myLoc = new Location(locationManager.NETWORK_PROVIDER);
+
+        locationManager.requestLocationUpdates(provider, 10000, 20, locationListener);
     }
 
     @Override
@@ -135,9 +147,23 @@ public class MainActivity extends FragmentActivity {
         return true;
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Connect the client.
+        mLocationClient.connect();
+    }
+
+    @Override
+    protected void onStop() {
+        // Disconnecting the client invalidates it.
+        mLocationClient.disconnect();
+        super.onStop();
+    }
+
     private void pushLocation() {
         ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
-        query.whereMatches("pid", (pid++).toString());
+        query.whereMatches("pid", pid.toString());
         try {
             query.getInBackground(query.getFirst().getObjectId(),new GetCallback<ParseObject>() {
                 public void done(ParseObject player, ParseException e) {
@@ -163,7 +189,23 @@ public class MainActivity extends FragmentActivity {
         LatLng latLng = new LatLng(latitude, longitude);
 
         googleMap.addMarker(new MarkerOptions().position(latLng));
-        googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        googleMap.animateCamera(CameraUpdateFactory.zoomTo(20));
+        //googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        //googleMap.animateCamera(CameraUpdateFactory.zoomTo(20));
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onDisconnected() {
+        Toast.makeText(this, "Disconnected. Please re-connect.",
+                Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Toast.makeText(this, "Connection Failed", Toast.LENGTH_SHORT).show();
     }
 }
