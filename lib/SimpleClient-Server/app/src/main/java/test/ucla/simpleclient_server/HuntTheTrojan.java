@@ -1,11 +1,10 @@
 package test.ucla.simpleclient_server;
 
-
 import android.app.Activity;
 import android.location.Criteria;
 import android.os.AsyncTask;
 
-
+import com.google.android.gms.common.ConnectionResult;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
@@ -20,11 +19,9 @@ import android.view.View;
 import android.widget.Button;
 import android.view.MenuItem;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.*;
 import android.util.Log;
 import android.location.Location;
-import android.text.style.*;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
@@ -33,27 +30,30 @@ import android.content.Intent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.*;
 
+
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+
+import com.google.android.gms.common.GooglePlayServicesClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
-import com.google.android.gms.maps.SupportMapFragment;
+
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.parse.*;
 
 
-public class HuntTheTrojan extends Activity {
+public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.ConnectionCallbacks,
+        GooglePlayServicesClient.OnConnectionFailedListener {
     private static final String TAG = HuntTheTrojan.class.getSimpleName();
     private BluetoothAdapter mBluetoothAdapter;
     private ListView lv;
     int REQUEST_ENABLE_BT;
-    private ArrayAdapter mArrayAdapter;
+
     private String NAME = "HungryChicken";
     private UUID MY_UUID = UUID.fromString("6655653c6-8767-44a4-a928-9a950c17cb23");
     private Integer pid;                    //integer for client to identify in the server
@@ -66,8 +66,30 @@ public class HuntTheTrojan extends Activity {
 
     private ConnectThread CT;
     private AcceptThread AT;
-    private backThread bT;
+    private BluetoothRunner BR;
+    private ClientRunner CR;
+    private backThread BT;
+    private BackRunner BRunn;
 
+    private class backThread extends Thread{
+        private Set<BluetoothDevice> pairedDevices;
+        backThread(){
+             pairedDevices = mBluetoothAdapter.getBondedDevices();
+            // If there are paired devices
+            if (pairedDevices.size() > 0) {
+                // Loop through paired devices
+                for (BluetoothDevice device : pairedDevices) {
+                    Log.d("backThread", device.getName());
+                    // Add the name and address to an array adapter to show in a ListView
+                   ClientRunner cr = new ClientRunner();
+                   cr.execute(device);
+                }
+            }
+        }
+        public void run(){
+
+        }
+    }
 
     public void exit(View view){
         if (pid == 0) {
@@ -85,7 +107,57 @@ public class HuntTheTrojan extends Activity {
         Intent intent = new Intent(this, GameStart.class);
         startActivity(intent);
     }
+    private class BluetoothRunner extends AsyncTask<Void, Void, Void> {
 
+        @Override
+        protected Void doInBackground(Void... params) {
+            if(mBluetoothAdapter.isEnabled())
+            AT = new AcceptThread();
+            Log.d("BluetoothRunner", "thread created");
+            while(true) {
+                AT.run();
+                if (!AT.isAlive())
+                    break;
+            }
+
+
+            return null;
+
+        }
+
+    }
+    private class BackRunner extends AsyncTask<Void , Void, Void>{
+        @Override
+        protected Void doInBackground (Void... params){
+
+            BT = new backThread();
+            Log.d("BackRunner", "Backthreadcreated");
+            while(true){
+                BT.run();
+                if (!BT.isAlive()) {
+                    break;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    //async task for mouse
+    private class ClientRunner extends AsyncTask<BluetoothDevice , Void, Void>{
+        @Override
+        protected Void doInBackground (BluetoothDevice... params){
+            CT = new ConnectThread(params[0]);
+            Log.d("clientRunner", "created a thread with device" +params[0].getName());
+            while(true) {
+                CT.run();
+                if (!CT.isAlive())
+                    break;
+            }
+            Log.d("ClientRunner", "threadcreated");
+            return null;
+        }
+    }
 
 
     @Override
@@ -96,26 +168,47 @@ public class HuntTheTrojan extends Activity {
         Intent turnOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
         startActivityForResult(turnOn, 0);
         REQUEST_ENABLE_BT = 1;
-        //bT = new backThread();
+        BT = new backThread();
         //bT.run();
-        mArrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1);
+
+        //make ourselves discoverable
+        Intent discoverableIntent = new
+                Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 3600);
+        startActivity(discoverableIntent);
+
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
         minutePing_cd = true;
         superPing_cd = true;
         Intent intent = getIntent();
-        Integer fromPast = intent.getIntExtra(GameStart.PID, -1);
-        pid = fromPast;
-        Log.d(TAG, "123412314" + pid.toString());
+
+        pid =  intent.getIntExtra(GameStart.PID, -1);
+
         Parse.initialize(this, "xJxmXrtjWXGGl3jmHxLmhD5uyG6rv6jSgR9xUwO3", "W0ePKRBPHRHSNVwUTsB2MsW7aJJzhTyGEZ1B4F1c");
-        if (pid != 0){
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        }
+        if (pid != 0){                                              //mouse
+            mBluetoothAdapter.startDiscovery();
             Button superb = (Button)findViewById(R.id.button3);
             superb.setClickable(false);
             superb.setVisibility(View.INVISIBLE);
+            BRunn = new BackRunner();
+            BRunn.execute();
+
 
         }
         else {
             mBluetoothAdapter.startDiscovery();
+            //AT = new AcceptThread();                        //creates for cat
+            Toast.makeText(this, "Parent: Server thread created for cat",
+                    Toast.LENGTH_SHORT).show();
+            BR = new BluetoothRunner();
+            Log.d("BluetoothRunner", "started");
+            BR.execute();
+
         }
         if (googleMap == null){
             googleMap = ((MapFragment) getFragmentManager()
@@ -126,30 +219,6 @@ public class HuntTheTrojan extends Activity {
         }
 
     }
-    public class backThread extends Thread{
-        backThread(){
-
-        }
-        public void run(){
-            //checked through all the paired devices
-            Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-            // If there are paired devices
-            if (pairedDevices.size() > 0) {
-                // Loop through paired devices
-                for (BluetoothDevice device : pairedDevices) {
-                    // Add the name and address to an array adapter to show in a ListView
-                    if (pid == 0){
-                        AT = new AcceptThread();
-                        AT.run();
-                    }
-                    else{
-                        CT = new ConnectThread(device);
-                        CT.run();
-                    }
-                }
-            }
-        }
-    }
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -159,15 +228,11 @@ public class HuntTheTrojan extends Activity {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if (pid != 0){
                     //we are a mouse so we connected to the cat
-                    //we create a CT to send to that device.
-                    CT = new ConnectThread(device);
-                    CT.run();
+                    //we create a CR to send to that device.
+                   CR = new ClientRunner();
+                  CR.execute(device);
                 }
-                else {
-                    //we are a cat so we
-                    AT = new AcceptThread();
-                    AT.run();
-                }
+
             }
         }
     };
@@ -177,42 +242,49 @@ public class HuntTheTrojan extends Activity {
 
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
 
-        Criteria criteria = new Criteria();
-
-        String provider = locationManager.getBestProvider(criteria, true);
-
-        Location location = locationManager.getLastKnownLocation(provider);
-
         LocationListener locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
                 //googleMap.clear();
                 //drawMarker(location);
                 myLoc = location;
+                drawMarker(myLoc);
                 pushLocation();
             }
 
             @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-
-            }
+            public void onStatusChanged(String provider, int status, Bundle extras) {}
 
             @Override
-            public void onProviderEnabled(String provider) {
-
-            }
+            public void onProviderEnabled(String provider) {}
 
             @Override
-            public void onProviderDisabled(String provider) {
-
-            }
+            public void onProviderDisabled(String provider) {}
         };
 
-        if(location != null){
-            //PLACE THE INITIAL MARKER
-            myLoc = location;
-            drawMarker(location);
+        Criteria criteria = new Criteria();
+        String provider= locationManager.getBestProvider(criteria, true);
+
+        myLoc = locationManager.getLastKnownLocation(provider);
+
+        if (myLoc != null) {
+            drawMarker(myLoc);
+            double latitude = myLoc.getLatitude();
+            double longitude = myLoc.getLongitude();
+
+            LatLng latLng = new LatLng(latitude, longitude);
+            googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+            googleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
         }
+        else
+            Toast.makeText(this, "No location found.",
+                    Toast.LENGTH_SHORT).show();
+         if (myLoc == null){
+             myLoc = new Location(locationManager.NETWORK_PROVIDER);
+
+         }
+
+
         locationManager.requestLocationUpdates(provider, 10000, 20, locationListener);
     }
     private void drawMarker(Location location) {
@@ -222,12 +294,27 @@ public class HuntTheTrojan extends Activity {
         LatLng latLng = new LatLng(latitude, longitude);
 
         googleMap.addMarker(new MarkerOptions().position(latLng));
-        googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        googleMap.animateCamera(CameraUpdateFactory.zoomTo(20));
+        //googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        //googleMap.animateCamera(CameraUpdateFactory.zoomTo(20));
+    }
+    @Override
+    public void onConnected(Bundle bundle) {
+        Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onDisconnected() {
+        Toast.makeText(this, "Disconnected. Please re-connect.",
+                Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Toast.makeText(this, "Connection Failed", Toast.LENGTH_SHORT).show();
     }
     private void pushLocation() {
         ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
-        query.whereMatches("pid", (pid++).toString());
+        query.whereMatches("pid", pid.toString());
         try {
             query.getInBackground(query.getFirst().getObjectId(),new GetCallback<ParseObject>() {
                 public void done(ParseObject player, ParseException e) {
@@ -248,49 +335,32 @@ public class HuntTheTrojan extends Activity {
 
     public void MouseConnect(OutputStream outStream){
         //once we have connected we should create a  kill our game
-        OutputStream mmOutStream = outStream;
-
+        Log.d("MouseConnect-Inside", "sending pid");
         try {
-            mmOutStream.write(this.pid);
-
+            outStream.write(this.pid);
+            gameEnd(1);
+            Log.d("Mouse", "writing " + this.pid + " to outstream");
         }catch (IOException e){}
         //if our pid is not -1 then it isn't initialized
 
 
     }
-    private class MouseBackground extends AsyncTask<Void, Void, Void>{
-        private BluetoothSocket mmServerSocket;
 
-        MouseBackground(BluetoothSocket passed_Socket) {
-            mmServerSocket = passed_Socket;
-        }
-        @Override
-        protected  Void doInBackground(Void... params){
-            BluetoothSocket socket = null;
-            try{
-                //blocking call that waits for client
-                mmServerSocket.connect();
-            }catch (IOException e) {
-
-            }
-
-            return null;
-        }
-    }
     //uncomment for client aka mouse device
     private class ConnectThread extends Thread {
         private final BluetoothSocket mmSocket;
-        private final BluetoothDevice mmDevice;
         private final InputStream mmInStream;
+
         private final OutputStream mmOutStream;
 
         public ConnectThread(BluetoothDevice device) {
             // Use a temporary object that is later assigned to mmSocket,
             // because mmSocket is final
+            Log.d("ConnectThread-Inside", "inconstructor");
             BluetoothSocket tmp = null;
-            mmDevice = device;
+
             InputStream tempstream = null;
-           OutputStream tempout = null;
+            OutputStream tempout = null;
 
 
             // Get a BluetoothSocket to connect with the given BluetoothDevice
@@ -312,6 +382,7 @@ public class HuntTheTrojan extends Activity {
         public void run() {
             // Cancel discovery because it will slow down the connection
             mBluetoothAdapter.cancelDiscovery();
+            Log.d("ConnectThread-Inside", "run function");
 
             try {
                 // Connect the device through the socket. This will block
@@ -319,15 +390,13 @@ public class HuntTheTrojan extends Activity {
                 mmSocket.connect();
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and get out
-                try {
-                    mmSocket.close();
-                } catch (IOException closeException) { }
-                return;
+
             }
 
             // Do work to manage the connection (in a separate thread)
             MouseConnect(mmOutStream);
-            cancel();
+            Log.d("ConnectThread-Inside", "Sent");
+            //cancel();
             mBluetoothAdapter.startDiscovery();
         }
 
@@ -391,27 +460,32 @@ public class HuntTheTrojan extends Activity {
     //uncomment for server aka cat device
     private class AcceptThread extends Thread {
         private final BluetoothServerSocket mmServerSocket;
-        private final InputStream mmInstream;
+        private InputStream mmInstream;
 
 
         public AcceptThread() {
             // Use a temporary object that is later assigned to mmServerSocket,
             // because mmServerSocket is final
+            Log.d("accept thread", "in constructor");
             BluetoothServerSocket tmp = null;
             try {
                 // MY_UUID is the app's UUID string, also used by the client code
                 tmp = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
             } catch (IOException e) { }
             mmServerSocket = tmp;
+            Log.d("accept thread", "server socket found");
 
+            }
+
+        public void run() {
+            Log.d("thread run", "servr is running");
             BluetoothSocket socket;
-
-            while (true) {
+                socket = null;
                 try {
                     socket = mmServerSocket.accept();
                 } catch (IOException e) {
                     mmInstream = null;
-                    break;
+
                 }
                 // If a connection was accepted
                 if (socket != null) {
@@ -421,19 +495,12 @@ public class HuntTheTrojan extends Activity {
                         tempin = socket.getInputStream();
 
                     }catch (IOException e){}
-                        mmInstream = tempin;
-
-                    break;
+                    mmInstream = tempin;
                 }
                 else {
                     mmInstream = null;
-                    break;
                 }
-            }
 
-        }
-
-        public void run() {
             Integer pid = -1;
 
             try {
@@ -468,36 +535,6 @@ public class HuntTheTrojan extends Activity {
             } catch (IOException e) { }
         }
     }
-
-
-    //what the server does in the background, bluetooth connections
-    private class ServerBackground extends AsyncTask<Void, Void, Void>{
-        private BluetoothServerSocket mmServerSocket;
-
-        ServerBackground(BluetoothServerSocket passed_Ssocket) {
-            mmServerSocket = passed_Ssocket;
-        }
-        @Override
-        protected  Void doInBackground(Void... params){
-            BluetoothSocket socket = null;
-            try{
-                //blocking call that waits for client
-                socket = mmServerSocket.accept();
-            }catch (IOException e) {
-
-            }
-            if (socket != null)
-            {
-                CatConnect(socket);
-            }
-            return null;
-        }
-    }
-    //what the server does in the background, bluetooth connections
-
-
-
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -545,18 +582,19 @@ public class HuntTheTrojan extends Activity {
                         Toast.LENGTH_SHORT).show();
                 ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
                 query.whereMatches("pid", pid.toString());
-
+                ParseObject pobj= null;
                 //request it from the DB
                 try {
-                    ParseObject pobj = query.get(query.getFirst().getObjectId());
-                    pobj.put("isTaken", false);
-                    pobj.put("isAlive", false);
-                    pobj.saveInBackground();
-
+                    pobj = query.get(query.getFirst().getObjectId());
 
                 } catch (ParseException e) {
 
                     e.printStackTrace();
+                }
+                if (pobj != null){
+                    pobj.put("isTaken", false);
+                    pobj.put("isAlive", false);
+                    pobj.saveInBackground();
                 }
             }
         }
@@ -614,13 +652,39 @@ public class HuntTheTrojan extends Activity {
         }
     }
     public void minutePing(View view) {
-        if (minutePing_cd == true) {
+        if (minutePing_cd) {
+            Log.d("minute ping", "start ping");
+            ParseQuery query = ParseQuery.getQuery("PlayerInfo");
+            query.whereEqualTo("isAlive", true);
+            query.findInBackground(new FindCallback<ParseObject>() {
+                public void done(List<ParseObject> playerList, ParseException e) {
+                    Log.d("minute ping", "middle ping 1");
+                    if (e == null) {
+                        googleMap.clear();
+                        for(ParseObject obj : playerList) {
+                            Log.d("minute ping", "in ping");
+                            ParseGeoPoint g = obj.getParseGeoPoint("location");
+                            ParseGeoPoint ml = new ParseGeoPoint(myLoc.getLatitude(),myLoc.getLongitude());
+                            Log.d("minute ping", "geopoint created");
+                            //if(g.distanceInKilometersTo(ml) < 0.1) {
+                            Location l = new Location(myLoc);
+                            l.setLatitude(g.getLatitude());
+                            l.setLongitude(g.getLongitude());
+                            Log.d("minute ping", "in ping 2");
+                            drawMarker(l);
+                            Log.d("minute ping", "in ping 3");
+                            //}
+                        }
+                    }
+                }
+            });
             new CountDownTimer(30000, 1000) {
                 Button button = (Button) findViewById(R.id.button2);
 
                 public void onTick(long millisUntilFinished) {
                         minutePing_cd = false;
                         button.setText(" " + millisUntilFinished / 1000 + " ");
+                    Log.d("minute ping", "countdown");
                 }
 
                 public void onFinish() {
@@ -639,7 +703,30 @@ public class HuntTheTrojan extends Activity {
         else
         {
 
-            if (superPing_cd == true) {
+            if (superPing_cd ) {
+                ParseQuery query = ParseQuery.getQuery("PlayerInfo");
+                query.whereEqualTo("isAlive", true);
+                query.findInBackground(new FindCallback<ParseObject>() {
+                    public void done(List<ParseObject> playerList, ParseException e) {
+                        if (e == null) {
+                            googleMap.clear();
+                            for(ParseObject obj : playerList) {
+                                ParseGeoPoint g = obj.getParseGeoPoint("location");
+
+                                ParseGeoPoint ml = new ParseGeoPoint(myLoc.getLatitude(),myLoc.getLongitude());
+                                if(g.distanceInKilometersTo(ml) < 0.2) {
+                                    Location l = new Location(myLoc);
+                                    l.setLatitude(g.getLatitude());
+                                    l.setLongitude(g.getLongitude());
+                                    drawMarker(l);
+                                }
+                            }
+                        } else {
+                            //Log.d("score", "Error: " + e.getMessage());
+                        }
+                    }
+                });
+
                 new CountDownTimer(10000, 1000) {
                     Button button = (Button) findViewById(R.id.button3);
 
@@ -657,4 +744,5 @@ public class HuntTheTrojan extends Activity {
             }
         }
     }
+
 }

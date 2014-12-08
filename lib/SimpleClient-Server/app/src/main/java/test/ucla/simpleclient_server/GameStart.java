@@ -173,7 +173,7 @@ public class GameStart extends Activity {
        // Toast.makeText(getApplicationContext(), "Making game...",
                // Toast.LENGTH_SHORT).show();
         //startActivity(intent);
-        ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
+        final ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
         query.whereMatches("pid", "0");
         Log.d(TAG, "Query Initialized");
         //request it from the DB
@@ -189,6 +189,7 @@ public class GameStart extends Activity {
 
                         }
                         else{
+
                             Button button = (Button)findViewById(R.id.button6);
                             button.setVisibility(View.VISIBLE);
                             button.setClickable(true);
@@ -197,8 +198,26 @@ public class GameStart extends Activity {
                             Button button2 = (Button)findViewById(R.id.button7);
                             button2.setVisibility(View.VISIBLE);
                             button2.setClickable(true);
+                            Button button3 = (Button)findViewById(R.id.button5);
+                            button3.setClickable(false);
                             player.put("isTaken", true);
                             player.saveInBackground();
+                            //clean the server
+                            for(int pid = 1; pid < 8; pid ++){
+                                query.whereMatches("pid", String.valueOf(pid));
+                                ParseObject player2 = null;
+                                try {
+                                    player2 = query.get(query.getFirst().getObjectId());
+
+                                }catch (ParseException e2){
+                                    e2.printStackTrace();
+                                }
+                                if (player2 != null){
+                                    player2.put("isAlive", false);
+                                    player2.put("isTaken", false);
+                                    player2.saveInBackground();
+                                }
+                            }
                         }
 
                     }
@@ -253,6 +272,8 @@ public class GameStart extends Activity {
                         Button button1 = (Button) findViewById(R.id.button7);
                         button1.setVisibility(View.INVISIBLE);
                         button1.setClickable(false);
+                        Button button5 = (Button) findViewById(R.id.button5);
+                        button5.setClickable(true);
                         TextView txt = (TextView)findViewById(R.id.textView2);
                         txt.setVisibility(View.INVISIBLE);
                     }

@@ -29,7 +29,8 @@
         android:id="@+id/button2"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:onClick="minutePing" />
+        android:onClick="minutePing"
+        android:minWidth="115dp" />
 
     <Button
         android:layout_width="wrap_content"
