@@ -14,6 +14,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.SystemClock;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
@@ -46,6 +47,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.parse.*;
 
+import org.w3c.dom.Text;
+
 
 public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.ConnectionCallbacks,
         GooglePlayServicesClient.OnConnectionFailedListener {
@@ -70,13 +73,72 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
     private ClientRunner CR;
     private backThread BT;
     private BackRunner BRunn;
-
+    private catWin WT;
     private boolean gameResolved;
+    private catWinRunner cWR;
 
+    private boolean Ended;
+
+       public void wingame (){
+           Log.d("wingame", "game won");
+           //TextView txt2 = (TextView) findViewById(R.id.textView5);
+           //txt2.setText("YOU WON! Click anywhere to continue.");
+           gameEnd(1);
+           Button button4 = (Button) findViewById(R.id.button9);
+           button4.setVisibility(View.VISIBLE);
+           //button4.setBackgroundResource(R.color.);
+           button4.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+           button4.setClickable(true);
+       }
+    private class catWinRunner extends AsyncTask<Void, Void, Void>{
+
+        @Override
+        protected Void doInBackground(Void... params){
+            WT = new catWin();
+            while(true){
+                WT.run();
+                if(!WT.isAlive())
+                    break;
+            }
+            return null;
+
+        }
+    }
+    private class catWin extends Thread{
+        catWin(){
+
+        }
+        public void run(){
+            //check if mice have died
+            /*
+            ParseQuery<ParseObject> query2 = ParseQuery.getQuery("PlayerInfo");
+            query2.whereEqualTo("isAlive", true);
+            try{
+                if(query2.count() == 1){
+                    ParseObject obj = query2.getFirst();
+                    if(obj.getString("pid").equals("0")){
+                        if (!Ended ) {
+                            wingame();
+                            Ended = true;
+                        }
+
+                    }
+                }
+            }catch (ParseException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            */
+        }
+
+    }
     private class backThread extends Thread{
         private Set<BluetoothDevice> pairedDevices;
+
         backThread(){
+
              pairedDevices = mBluetoothAdapter.getBondedDevices();
+
             // If there are paired devices
             if (pairedDevices.size() > 0) {
                 // Loop through paired devices
@@ -90,39 +152,66 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
         }
         public void run(){
 
+            ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
+            query.whereMatches("pid", String.valueOf(0));
+            try{
+                ParseObject pobj = query.get(query.getFirst().getObjectId());
+                if (!pobj.getBoolean("isTaken") || !pobj.getBoolean("isAlive")){
+                    gameEnd(1);
+
+                    //startActivity(intent);
+                }
+                //else this object is already dead, we do nothing
+            }catch (ParseException e ){
+                e.printStackTrace();
+            }
         }
+
     }
 
     public void exit(View view){
         if (pid == 0) {
-            Toast.makeText(getApplicationContext(), "Quitting game...",
-                    Toast.LENGTH_SHORT).show();
+
             gameEnd(0);
         }
         else {
-            Toast.makeText(getApplicationContext(), "Quitting game...",
-                    Toast.LENGTH_SHORT).show();
             gameEnd(1);
         }
+        ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
+        query.whereMatches("pid", this.pid.toString());
 
+        //request it from the DB
+        boolean done = false;
+        while (!done) {
+            try {
+                ParseObject pobj = query.get(query.getFirst().getObjectId());
 
-        Intent intent = new Intent(this, GameStart.class);
-        startActivity(intent);
+                if (pobj.getBoolean("isAlive")== false) {
+                    done = true;
+                     break;
+                }
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+        System.exit(0);
+        //Intent intent = new Intent(this, GameStart.class);
+        //startActivity(intent);
     }
     private class BluetoothRunner extends AsyncTask<Void, Void, Void> {
 
         @Override
         protected Void doInBackground(Void... params) {
-            if(mBluetoothAdapter.isEnabled())
+
             AT = new AcceptThread();
             Log.d("BluetoothRunner", "thread created");
             while(true) {
+                Log.d("BluetoothRUnner", "in while loop");
+
                 AT.run();
                 if (!AT.isAlive())
                     break;
             }
-
-
             return null;
 
         }
@@ -139,6 +228,8 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
                 if (!BT.isAlive()) {
                     break;
                 }
+
+
             }
 
             return null;
@@ -159,20 +250,50 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
             return null;
         }
     }
-
+    @Override
+    public void onBackPressed() {
+    }
+    public void exit2(View view){
+        System.exit(0);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_simple_text_client_actvity);
+
+        Intent intent = getIntent();
+        pid =  intent.getIntExtra(GameStart.PID, -1);
+        ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
+        TextView txt = (TextView)findViewById(R.id.textView3);
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         Intent turnOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        startActivityForResult(turnOn, 0);
+        startActivityForResult(turnOn, REQUEST_ENABLE_BT);
+        if (pid != 0) {//if we are not a cat, we should wait on the cay
+
+            query.whereMatches("pid", String.valueOf(0));
+            txt.setText("Waiting for cat to connect to..");
+
+            try {
+                ParseObject player = query.get(query.getFirst().getObjectId());
+                while (!player.getBoolean("isAlive")) {
+                    //update the player
+                    player = query.get(query.getFirst().getObjectId());
+                    SystemClock.sleep(250);
+                    //do nothing
+                }
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+        //mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        //Intent turnOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        // startActivityForResult(turnOn, 0);
         REQUEST_ENABLE_BT = 1;
         gameResolved = false;
         BT = new backThread();
         //bT.run();
-
+        Ended = false;
         //make ourselves discoverable
         Intent discoverableIntent = new
                 Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
@@ -183,15 +304,18 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
         registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
         minutePing_cd = true;
         superPing_cd = true;
-        Intent intent = getIntent();
 
-        pid =  intent.getIntExtra(GameStart.PID, -1);
+
 
         Parse.initialize(this, "xJxmXrtjWXGGl3jmHxLmhD5uyG6rv6jSgR9xUwO3", "W0ePKRBPHRHSNVwUTsB2MsW7aJJzhTyGEZ1B4F1c");
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
+        Button buttonWin = (Button)findViewById(R.id.button9);
+        buttonWin.setVisibility(View.INVISIBLE);
+        buttonWin.setClickable(false);
+
         if (pid != 0){                                              //mouse
             mBluetoothAdapter.startDiscovery();
             Button superb = (Button)findViewById(R.id.button3);
@@ -199,19 +323,97 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
             superb.setVisibility(View.INVISIBLE);
             BRunn = new BackRunner();
             BRunn.execute();
+            txt.setText("You are a mouse! Hide from the cat. Good luck!");
+            new CountDownTimer(900000, 1000) {
+            //new CountDownTimer(30000, 1000){
+                TextView txt2 = (TextView) findViewById(R.id.textView4);
+
+                public void onTick(long millisUntilFinished) {
+                    Long minutes_ten, minutes_ones, seconds_ten, second_ones, time;
+                    time = (millisUntilFinished)/1000;
+                    second_ones = time %10;
+                    seconds_ten = (time%60)/10;
+                    minutes_ones = (time%600)/60;
+                    minutes_ten = (time%3600)/600;
+                    txt2.setText("Time left: "+ minutes_ten+""+minutes_ones+":"+seconds_ten+""+second_ones);
+                }
+
+                public void onFinish() {
+                    //time out, the mice have won
+                    txt2.setText("Game Over! Click anywhere to continue");
+                    gameEnd(0);
+                    Button button4 = (Button)findViewById(R.id.button8);
+                    button4.setVisibility(View.VISIBLE);
+                    //button4.setBackgroundResource(R.color.);
+                    button4.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+                    button4.setClickable(true);
+                }
+            }.start();
 
 
         }
         else {
             mBluetoothAdapter.startDiscovery();
+            txt.setText("You are the cat!  Find the mice!");
             //AT = new AcceptThread();                        //creates for cat
-            Toast.makeText(this, "Parent: Server thread created for cat",
-                    Toast.LENGTH_SHORT).show();
+
             BR = new BluetoothRunner();
             Log.d("BluetoothRunner", "started");
             BR.execute();
+            cWR = new catWinRunner();
+            cWR.execute();
+
+            new CountDownTimer(900000, 1000){
+            //new CountDownTimer(30000, 1000) {
+                TextView txt2 = (TextView) findViewById(R.id.textView4);
+
+                public void onTick(long millisUntilFinished) {
+                    ParseQuery<ParseObject> query2 = ParseQuery.getQuery("PlayerInfo");
+                    query2.whereEqualTo("isAlive", true);
+                    try{
+                        if(query2.count() == 1){
+                            ParseObject obj = query2.getFirst();
+                            if(obj.getString("pid").equals("0")){
+                                if (!Ended ) {
+                                    Log.d("OnTick", "before win conditions, only alive set");
+                                    wingame();
+                                    Ended = true;
+                                }
+
+                            }
+                        }
+                    }catch (ParseException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                    Long minutes_ten, minutes_ones, seconds_ten, second_ones, time;
+                    time = (millisUntilFinished)/1000;
+                    second_ones = time %10;
+                    seconds_ten = (time%60)/10;
+                    minutes_ones = (time%600)/60;
+                    minutes_ten = (time%3600)/600;
+                    if (Ended)
+                        txt2.setText("YOU WON! Click anywhere to continue.");
+                    else
+                        txt2.setText("Time left: "+ minutes_ten+""+minutes_ones+":"+seconds_ten+""+second_ones);
+                }
+
+                public void onFinish() {
+                    //time out, the mice have won
+                    txt2.setText("GAME OVER! Click anywhere to continue.");
+                    gameEnd(0);
+                    Button button4 = (Button)findViewById(R.id.button8);
+                    button4.setVisibility(View.VISIBLE);
+                    //button4.setBackgroundResource(R.color.);
+                    button4.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+                    button4.setClickable(true);
+                }
+            }.start();
 
         }
+        Button button4 = (Button)findViewById(R.id.button8);
+        button4.setVisibility(View.INVISIBLE);
+        button4.setClickable(false);
         if (googleMap == null){
             googleMap = ((MapFragment) getFragmentManager()
                     .findFragmentById(R.id.map)).getMap();
@@ -250,7 +452,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
                 //googleMap.clear();
                 //drawMarker(location);
                 myLoc = location;
-                drawMarker(myLoc);
+                //drawMarker(myLoc);
                 pushLocation();
             }
 
@@ -270,7 +472,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
         myLoc = locationManager.getLastKnownLocation(provider);
 
         if (myLoc != null) {
-            drawMarker(myLoc);
+            //drawMarker(myLoc);
             double latitude = myLoc.getLatitude();
             double longitude = myLoc.getLongitude();
 
@@ -294,8 +496,8 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
         double longitude = location.getLongitude();
 
         LatLng latLng = new LatLng(latitude, longitude);
-
-        googleMap.addMarker(new MarkerOptions().position(latLng));
+        if (!myLoc.equals(location))
+            googleMap.addMarker(new MarkerOptions().position(latLng));
         //googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         //googleMap.animateCamera(CameraUpdateFactory.zoomTo(20));
     }
@@ -401,6 +603,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
             // Do work to manage the connection (in a separate thread)
             MouseConnect(mmOutStream);
             Log.d("ConnectThread-Inside", "Sent");
+            mBluetoothAdapter.startDiscovery();
             //cancel();
 
         }
@@ -414,51 +617,6 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
     }
 
 
-    public void CatConnect(BluetoothSocket socket){
-       BluetoothSocket mSocket2 = socket;
-        //get the input stream
-        InputStream mmStream = null;
-        try {
-            if (mSocket2 != null)
-                mmStream = mSocket2.getInputStream();
-        }catch (IOException e){}
-
-        Integer temp = -1;
-
-        //read from the mouse's input
-        try {
-            temp = mmStream.read();
-        }catch (IOException e){}
-
-        if (temp != -1) {
-            //if we get a valid value from mice
-            ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
-            query.whereMatches("pid", temp.toString());
-
-            //request it from the DB
-            try {
-                query.getInBackground(query.getFirst().getObjectId(),new GetCallback<ParseObject>() {
-                    public void done(ParseObject player, ParseException e) {
-                        if (e == null) {
-                            //the player is taken and the number is received again, so we kill it
-                            if (player.getBoolean("isTaken")== true) {
-                                if(player.getBoolean("isAlive")== true) {
-                                    player.put("isAlive", false);
-                                    player.saveInBackground();
-                                }
-                            }
-
-
-
-                        }
-                    }
-                });
-            } catch (ParseException e) {
-
-                e.printStackTrace();
-            }
-        }
-          }
 
 
     //Server
@@ -484,6 +642,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
 
         public void run() {
             Log.d("thread run", "servr is running");
+
             BluetoothSocket socket;
                 socket = null;
                 try {
@@ -570,8 +729,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
         Log.d("Game end", "initialized");
         if (end == 1) {
             if (pid == 0) {     //cat
-                Toast.makeText(getApplicationContext(), "Game is over! Congratulations!",
-                        Toast.LENGTH_SHORT).show();
+
                 ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
                 query.whereMatches("pid", String.valueOf(0));
                 try{
@@ -586,8 +744,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
                 //now we have to clean up the DB
             } else {                //mouse
                 if (!gameResolved) {//if we left the game, we update ourselves, otherwise the cat should handle the server
-                    Toast.makeText(getApplicationContext(), "Game over!  Thank you for playing!",
-                            Toast.LENGTH_SHORT).show();
+
                     ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
                     query.whereMatches("pid", pid.toString());
                     ParseObject pobj = null;
@@ -612,8 +769,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
         else {
             Log.d(TAG,"inside game(1)");
             if (pid == 0){      //cat
-                Toast.makeText(getApplicationContext(), "You lost! Thank you for playing!",
-                        Toast.LENGTH_SHORT).show();
+
                 ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
                 query.whereMatches("pid", String.valueOf(0));
                 try{
@@ -656,8 +812,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
 
                         e.printStackTrace();
                     }
-                    Toast.makeText(getApplicationContext(), "Game is over! Congratulations!",
-                            Toast.LENGTH_SHORT).show();
+
                 }
             }
         }
@@ -672,19 +827,24 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
                     Log.d("minute ping", "middle ping 1");
                     if (e == null) {
                         googleMap.clear();
-                        for(ParseObject obj : playerList) {
+                        for (ParseObject obj : playerList) {
                             Log.d("minute ping", "in ping");
                             ParseGeoPoint g = obj.getParseGeoPoint("location");
-                            ParseGeoPoint ml = new ParseGeoPoint(myLoc.getLatitude(),myLoc.getLongitude());
+                            ParseGeoPoint ml = new ParseGeoPoint(myLoc.getLatitude(), myLoc.getLongitude());
                             Log.d("minute ping", "geopoint created");
-                            //if(g.distanceInKilometersTo(ml) < 0.1) {
-                            Location l = new Location(myLoc);
-                            l.setLatitude(g.getLatitude());
-                            l.setLongitude(g.getLongitude());
-                            Log.d("minute ping", "in ping 2");
-                            drawMarker(l);
-                            Log.d("minute ping", "in ping 3");
-                            //}
+                            if (g.distanceInKilometersTo(ml) < 0.1) {
+                                String temp = obj.getString("pid");
+                                if (temp.equals(String.valueOf(pid))) {
+                                    continue;
+                                }
+                                Location l = new Location(myLoc);
+                                l.setLatitude(g.getLatitude());
+                                l.setLongitude(g.getLongitude());
+                                Log.d("minute ping", "in ping 2");
+                                drawMarker(l);
+                                Log.d("minute ping", "in ping 3");
+                                //}
+                            }
                         }
                     }
                 }
@@ -726,6 +886,10 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
 
                                 ParseGeoPoint ml = new ParseGeoPoint(myLoc.getLatitude(),myLoc.getLongitude());
                                 if(g.distanceInKilometersTo(ml) < 0.2) {
+                                    String temp = obj.getString("pid");
+                                    if (temp.equals(String.valueOf(pid))) {
+                                        continue;
+                                    }
                                     Location l = new Location(myLoc);
                                     l.setLatitude(g.getLatitude());
                                     l.setLongitude(g.getLongitude());

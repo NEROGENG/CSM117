@@ -25,6 +25,7 @@ public class GameStart extends Activity {
     private static final String TAG = GameStart.class.getSimpleName();
     private Integer pid;
     private boolean assigned;
+    private Integer init;
 
 
     @Override
@@ -42,6 +43,8 @@ public class GameStart extends Activity {
         Button button2 = (Button)findViewById(R.id.button7);
         button2.setVisibility(View.INVISIBLE);
         button2.setClickable(false);
+
+        init = -1;
     }
 
 
@@ -71,6 +74,7 @@ public class GameStart extends Activity {
     public void join(View view) {
         final Intent intent = new Intent(this, HuntTheTrojan.class);
 
+
        //Toast.makeText(getApplicationContext(), "Joined game...",
         //        Toast.LENGTH_SHORT).show();
         //startActivity(intent);
@@ -82,9 +86,11 @@ public class GameStart extends Activity {
         Log.d(TAG, "Query Initialized");
         //request it from the DB
         try {
+
             query.getInBackground(query.getFirst().getObjectId(),new GetCallback<ParseObject>() {
 
                 public void done(ParseObject player, ParseException e) {
+
                     if (e == null) {
                         Log.d(TAG, "Query successful");
                         if(player.getBoolean("isTaken") == true){
@@ -115,40 +121,18 @@ public class GameStart extends Activity {
                                         e2.printStackTrace();
                                     }
                             }
-
-                                /*try {
-                                query2.getInBackground(query2.getFirst().getObjectId(), new GetCallback<ParseObject>() {
-                                    @Override
-                                    public void done(ParseObject parseObject, ParseException e) {
-                                        if (e == null){
-                                            if (parseObject.getBoolean("isTaken")== false){
-                                               updateAssigned(true);
-                                                parseObject.put("isTaken", true);
-                                                parseObject.put("isAlive", true);
-                                                parseObject.saveInBackground();
-                                                intent.putExtra(PID, pid);
-                                               return;
-                                            }
-                                            else{
-                                               // pid++;
-                                                return;
-                                            }
-
-                                        }
-                                    }
-                                });
-                                }catch (ParseException e2){
-                                    e2.printStackTrace();
-                                }*/
-
                             }//if end forloop
                             if (assigned == false){
                                 Toast.makeText(getApplicationContext(), "The game is currently full...",
                                            Toast.LENGTH_SHORT).show();
                             }
                             else{
+
                                 intent.putExtra(PID, pid);
                                 startActivity(intent);
+
+                            }
+
                             }
 
                         }
@@ -158,8 +142,8 @@ public class GameStart extends Activity {
                         }
 
                     }
-                }
-            });
+                });
+
         } catch (ParseException e) {
 
             e.printStackTrace();
@@ -167,6 +151,7 @@ public class GameStart extends Activity {
 
 
     }
+
     public void make (View view){
 
 
@@ -203,19 +188,24 @@ public class GameStart extends Activity {
                             player.put("isTaken", true);
                             player.saveInBackground();
                             //clean the server
-                            for(int pid = 1; pid < 8; pid ++){
-                                query.whereMatches("pid", String.valueOf(pid));
-                                ParseObject player2 = null;
+                            for(init=1; init<8;init++){
+                                ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
+                                query.whereMatches("pid", (Integer.valueOf(init)).toString());
                                 try {
-                                    player2 = query.get(query.getFirst().getObjectId());
-
-                                }catch (ParseException e2){
+                                    query.getInBackground(query.getFirst().getObjectId(),new GetCallback<ParseObject>() {
+                                        public void done(ParseObject player, ParseException e) {
+                                            if (e == null) {
+                                                //ParseGeoPoint point = new ParseGeoPoint(40.0, -30.0);
+                                                //gameScore.put("location", point);
+                                                player.put("isTaken", false);
+                                                player.put("isAlive", false);
+                                                player.saveInBackground();
+                                            }
+                                        }
+                                    });
+                                } catch (ParseException e2) {
+                                    // TODO Auto-generated catch block
                                     e2.printStackTrace();
-                                }
-                                if (player2 != null){
-                                    player2.put("isAlive", false);
-                                    player2.put("isTaken", false);
-                                    player2.saveInBackground();
                                 }
                             }
                         }
@@ -246,9 +236,6 @@ public class GameStart extends Activity {
                         intent.putExtra(PID,0);
                         startActivity(intent);
                     }
-
-
-
 
             }});}catch (ParseException e){
                 e.printStackTrace();

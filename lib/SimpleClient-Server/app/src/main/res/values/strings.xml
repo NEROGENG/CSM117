@@ -18,6 +18,9 @@
     <string name="Client">Join a game</string>
     <string name="Start">Start game!</string>
     <string name="drop">Drop the cat</string>
+    <string name="wait">Waiting for cat.</string>
+    <string name="quit">Quit the game</string>
+    <string name="win"></string>
 
 
 </resources>
