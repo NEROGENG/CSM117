@@ -71,6 +71,8 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
     private backThread BT;
     private BackRunner BRunn;
 
+    private boolean gameResolved;
+
     private class backThread extends Thread{
         private Set<BluetoothDevice> pairedDevices;
         backThread(){
@@ -149,12 +151,11 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
         protected Void doInBackground (BluetoothDevice... params){
             CT = new ConnectThread(params[0]);
             Log.d("clientRunner", "created a thread with device" +params[0].getName());
-            while(true) {
+
                 CT.run();
-                if (!CT.isAlive())
-                    break;
-            }
-            Log.d("ClientRunner", "threadcreated");
+            //run once, and then die
+            //gameEnd(1);// mice loses, flag set to 1
+
             return null;
         }
     }
@@ -168,6 +169,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
         Intent turnOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
         startActivityForResult(turnOn, 0);
         REQUEST_ENABLE_BT = 1;
+        gameResolved = false;
         BT = new backThread();
         //bT.run();
 
@@ -338,8 +340,11 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
         Log.d("MouseConnect-Inside", "sending pid");
         try {
             outStream.write(this.pid);
+            gameResolved = true;
             gameEnd(1);
             Log.d("Mouse", "writing " + this.pid + " to outstream");
+            Intent intent = new Intent(this, GameStart.class);
+            startActivity(intent);
         }catch (IOException e){}
         //if our pid is not -1 then it isn't initialized
 
@@ -397,7 +402,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
             MouseConnect(mmOutStream);
             Log.d("ConnectThread-Inside", "Sent");
             //cancel();
-            mBluetoothAdapter.startDiscovery();
+
         }
 
         /** Will cancel an in-progress connection, and close the socket */
@@ -505,6 +510,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
 
             try {
                 pid = mmInstream.read();
+                Log.d("read Successful", String.valueOf(pid));
             }
             catch(IOException e)
             {
@@ -561,6 +567,7 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
 
     public void gameEnd( int end) {
         //if cat has won and not timed out, all mice lose
+        Log.d("Game end", "initialized");
         if (end == 1) {
             if (pid == 0) {     //cat
                 Toast.makeText(getApplicationContext(), "Game is over! Congratulations!",
@@ -577,24 +584,26 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
                 }
 
                 //now we have to clean up the DB
-            } else {            //mouse
-                Toast.makeText(getApplicationContext(), "Game over!  Thank you for playing!",
-                        Toast.LENGTH_SHORT).show();
-                ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
-                query.whereMatches("pid", pid.toString());
-                ParseObject pobj= null;
-                //request it from the DB
-                try {
-                    pobj = query.get(query.getFirst().getObjectId());
+            } else {                //mouse
+                if (!gameResolved) {//if we left the game, we update ourselves, otherwise the cat should handle the server
+                    Toast.makeText(getApplicationContext(), "Game over!  Thank you for playing!",
+                            Toast.LENGTH_SHORT).show();
+                    ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
+                    query.whereMatches("pid", pid.toString());
+                    ParseObject pobj = null;
+                    //request it from the DB
+                    try {
+                        pobj = query.get(query.getFirst().getObjectId());
 
-                } catch (ParseException e) {
+                    } catch (ParseException e) {
 
-                    e.printStackTrace();
-                }
-                if (pobj != null){
-                    pobj.put("isTaken", false);
-                    pobj.put("isAlive", false);
-                    pobj.saveInBackground();
+                        e.printStackTrace();
+                    }
+                    if (pobj != null) {
+
+                        pobj.put("isAlive", false);
+                        pobj.saveInBackground();
+                    }
                 }
             }
         }
@@ -622,15 +631,16 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
                 }
             }
             else{               //mouse
-                ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
-                query.whereMatches("pid", pid.toString());
+                if (!gameResolved) {
+                    ParseQuery<ParseObject> query = ParseQuery.getQuery("PlayerInfo");
+                    query.whereMatches("pid", pid.toString());
 
-                //request it from the DB
-                try {
-                    ParseObject pobj = query.get(query.getFirst().getObjectId());
-                    pobj.put("isTaken", false);
-                    pobj.put("isAlive", false);
-                    pobj.saveInBackground();
+                    //request it from the DB
+                    try {
+                        ParseObject pobj = query.get(query.getFirst().getObjectId());
+
+                        pobj.put("isAlive", false);
+                        pobj.saveInBackground();
                     /*query.get(query.getFirst().getObjectId());,new GetCallback<ParseObject>() {
                         public void done(ParseObject player, ParseException e) {
                             if (e == null) {
@@ -642,12 +652,13 @@ public class HuntTheTrojan extends Activity implements GooglePlayServicesClient.
                             }
                         }
                     });*/
-                } catch (ParseException e) {
+                    } catch (ParseException e) {
 
-                    e.printStackTrace();
+                        e.printStackTrace();
+                    }
+                    Toast.makeText(getApplicationContext(), "Game is over! Congratulations!",
+                            Toast.LENGTH_SHORT).show();
                 }
-                Toast.makeText(getApplicationContext(), "Game is over! Congratulations!",
-                        Toast.LENGTH_SHORT).show();
             }
         }
     }
