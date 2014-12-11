@@ -57,6 +57,7 @@ mice
 capture mechanic
 
 -bluetooth oriented by either distance or signal strength
+https://www.parse.com/questions/how-to-register-device
 
 ping mechanic 
 	cat
@@ -66,3 +67,21 @@ ping mechanic
 	
 	
 	ran.gross@yahoo.com
+	
+	
+	
+server
+	cat: 
+
+client
+
+what we learned
+android studio
+eclipse (meh)
+java
+gradle
+parse API
+google API
+bluetooth
+git
+
