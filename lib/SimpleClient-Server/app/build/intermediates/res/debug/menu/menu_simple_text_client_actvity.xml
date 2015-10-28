@@ -1,0 +1,6 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" tools:context=".SimpleTextClientActvity">
+    <item android:id="@+id/action_settings" android:title="@string/action_settings"
+        android:orderInCategory="100" android:showAsAction="never" />
+</menu>
+<!-- From: file:/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/src/main/res/menu/menu_simple_text_client_actvity.xml -->

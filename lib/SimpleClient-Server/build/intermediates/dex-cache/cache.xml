@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pre-dex-items>
+
+    <item
+        dex="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/build/intermediates/pre-dexed/debug/classes-92bfc6e39f8e33aa5d8345d89c0736265d2a399e.jar"
+        jar="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/build/intermediates/exploded-aar/com.android.support/support-v4/20.0.0/classes.jar"
+        jumboMode="false"
+        revision="20.0.0"
+        sha1="8694693636ab36910c8100ce527c258ff3ebece0"/>
+    <item
+        dex="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/build/intermediates/pre-dexed/debug/support-annotations-20.0.0-cf3b0c9e300189d9ddcc75fa1327e516a456f3d7.jar"
+        jar="/Users/Nero/Downloads/android-sdk-macosx/extras/android/m2repository/com/android/support/support-annotations/20.0.0/support-annotations-20.0.0.jar"
+        jumboMode="false"
+        revision="20.0.0"
+        sha1="9d9013e9ff35fc3756411e62873c363c70c638fa"/>
+    <item
+        dex="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/build/intermediates/pre-dexed/debug/bolts-android-1.1.2-aa083f2686498f521ae7f03ac7a9141901f82c46.jar"
+        jar="/Users/Nero/.gradle/caches/modules-2/files-2.1/com.parse.bolts/bolts-android/1.1.2/91c20388c9a45f62b5ed8fe0502bb76ff6251fc7/bolts-android-1.1.2.jar"
+        jumboMode="false"
+        revision="20.0.0"
+        sha1="91c20388c9a45f62b5ed8fe0502bb76ff6251fc7"/>
+    <item
+        dex="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/build/intermediates/pre-dexed/debug/internal_impl-20.0.0-0de999e17c67d11b8f3c20a7b79705f84ed901a6.jar"
+        jar="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/build/intermediates/exploded-aar/com.android.support/support-v4/20.0.0/libs/internal_impl-20.0.0.jar"
+        jumboMode="false"
+        revision="20.0.0"
+        sha1="e40b3078e3fbd353c9f44da8df25a8fc0078209d"/>
+    <item
+        dex="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/build/intermediates/pre-dexed/debug/classes-0275e3905b30e7c48a8113eb514e86b9acfc7621.jar"
+        jar="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/build/intermediates/exploded-aar/com.google.android.gms/play-services/6.1.71/classes.jar"
+        jumboMode="false"
+        revision="20.0.0"
+        sha1="0f6d5c1ef2e982c3b7858408e3df389cf5d202da"/>
+    <item
+        dex="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/build/intermediates/pre-dexed/debug/Parse-1.7.1-786307c4270ef2bc8a11a802d63d9d8f6720310c.jar"
+        jar="/Users/Nero/AndroidStudioProjects/CSM117/lib/SimpleClient-Server/app/libs/Parse-1.7.1/Parse-1.7.1.jar"
+        jumboMode="false"
+        revision="20.0.0"
+        sha1="87c45f9f66da531a65f065ee32f603c7e6db1528"/>
+
+</pre-dex-items>
